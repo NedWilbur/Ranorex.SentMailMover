@@ -15,11 +15,15 @@ namespace SentMailMover
     {
         //Settings
         bool debug = false;
-        int moveDelay = 15 * 1000;
+
         string mailFilter = "[SenderName] = 'Ranorex Support US' or " +
                             "[SenderName] = 'Ranorex Enterprise Support US' or " +
                             "[SenderName] = 'Ranorex Support' or " +
-                            "[SenderName] = 'Enterprise Support'";
+                            "[SenderName] = 'Enterprise Support' or" +
+                            "[SentOnBehalfOfName] = 'Ranorex Support US' or" +
+                            "[SentOnBehalfOfName] = 'Ranorex Support'";
+
+        //string mailFilter = "[SenderName] = 'Ned Wilbur'";
 
         //Variables
         Outlook.NameSpace ns;
@@ -49,7 +53,7 @@ namespace SentMailMover
                 log($"RxUS sentbox loaded: {rx_usSentBox.FolderPath}");
 
                 rx_atSentBox = ns.Folders["Ranorex Support"].Folders["Sent Items"];
-                log($"RxUS sentbox loaded: {rx_atSentBox.FolderPath}");
+                log($"RxAT sentbox loaded: {rx_atSentBox.FolderPath}");
 
                 pItems = pSentBox.Items.Restrict(mailFilter);
                 log($"Personal sentbox items: {pItems.Count} (with Filter Applied='{mailFilter}')");
@@ -86,26 +90,24 @@ namespace SentMailMover
             {
                 Outlook.MailItem mailItem = (Outlook.MailItem) item;
 
-                //Allow CRM addin to track properly
-                log($"Waiting {moveDelay}ms before moving email");
-                System.Threading.Tasks.Task.Delay(moveDelay);
-
                 //Move Mail
                 try
                 {
-                    if (debug) mailItem.UnRead = true;
-                    string sender = mailItem.Sender.Name;
-                    log($"Sender: {sender} | SUBJECT: {mailItem.Subject}");
+                    //if (debug) mailItem.UnRead = true;
+                    string sender = mailItem.SenderName;
+                    string onBehalfOfName = mailItem.SentOnBehalfOfName;
+                    log($"Sender: {sender} (OnBehalfOf: {onBehalfOfName}) | SUBJECT: {mailItem.Subject}");
 
                     //Move mail based on sender (US or AT)
                     if (sender == "Ranorex Support US" ||
-                        sender == "Ranorex Enterprise Support US")
+                        onBehalfOfName == "Ranorex Support US")
                     {
                         if (!debug) mailItem.Move(rx_usSentBox);
                         log($"MOVED TO: {rx_usSentBox.FolderPath}");
                     }
+
                     if (sender == "Ranorex Support" ||
-                        sender == "Enterprise Support")
+                        onBehalfOfName == "Ranorex Support")
                     {
                         if (!debug) mailItem.Move(rx_atSentBox);
                         log($"MOVED TO: {rx_atSentBox.FolderPath}");
@@ -121,6 +123,12 @@ namespace SentMailMover
                 log($"Item not moved (Not a MailItem)");
             }
             
+        }
+
+        Outlook.MailItem FindEmailSentOnBehalfSender(Outlook.MAPIFolder folder, string emailAddress)
+        {
+            string filter = "@SQL=\"http://schemas.microsoft.com/mapi/proptag/0x0065001F\" = '{0}'";
+            return folder.Items.Find(string.Format(filter, emailAddress)) as Outlook.MailItem;
         }
 
         /// <summary>
