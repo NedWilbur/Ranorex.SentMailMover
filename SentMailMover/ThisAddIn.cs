@@ -125,12 +125,6 @@ namespace SentMailMover
             
         }
 
-        Outlook.MailItem FindEmailSentOnBehalfSender(Outlook.MAPIFolder folder, string emailAddress)
-        {
-            string filter = "@SQL=\"http://schemas.microsoft.com/mapi/proptag/0x0065001F\" = '{0}'";
-            return folder.Items.Find(string.Format(filter, emailAddress)) as Outlook.MailItem;
-        }
-
         /// <summary>
         /// Write to output window/file (%temp%/SentMailMover.log)
         /// </summary>
