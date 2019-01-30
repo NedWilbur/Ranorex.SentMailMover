@@ -132,7 +132,7 @@ namespace SentMailMover
         public void log(string logText)
         {
             //Debug Output
-            if (debug) System.Diagnostics.Debug.WriteLine($"[SentMailMover] {logText}");
+            System.Diagnostics.Debug.WriteLine($"[SentMailMover] {logText}");
 
             //Output to File
             try
