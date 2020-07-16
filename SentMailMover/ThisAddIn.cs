@@ -6,7 +6,6 @@
 
 using System;
 using System.IO;
-using System.Threading;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
 namespace SentMailMover
@@ -14,20 +13,22 @@ namespace SentMailMover
     public partial class ThisAddIn
     {
         //Settings
-        bool debug = false;
-
-        string mailFilter = "[SenderName] = 'Ranorex Support US' or " +
-                            "[SenderName] = 'Ranorex Enterprise Support US' or " +
-                            "[SenderName] = 'Ranorex Support' or " +
-                            "[SenderName] = 'Enterprise Support' or" +
-                            "[SentOnBehalfOfName] = 'Ranorex Support US' or" +
-                            "[SentOnBehalfOfName] = 'Ranorex Support'";
+        const bool debug = false;
+        const string mailFilter = 
+            "[SenderName] = 'Ranorex Support US' or " +
+            "[SenderName] = 'Ranorex Enterprise Support US' or " +
+            "[SenderName] = 'Ranorex Support' or " +
+            "[SenderName] = 'Enterprise Support' or" +
+            "[SenderName] = 'Ranorex Authentication' or " +
+            "[SentOnBehalfOfName] = 'Ranorex Support US' or " +
+            "[SentOnBehalfOfName] = 'Ranorex Support' or " +
+            "[SentOnBehalfOfName] = 'Ranorex Authentication'";
 
         //string mailFilter = "[SenderName] = 'Ned Wilbur'";
 
         //Variables
         Outlook.NameSpace ns;
-        Outlook.MAPIFolder pSentBox, rx_usSentBox, rx_atSentBox;
+        Outlook.MAPIFolder pSentBox, rx_usSentBox, rx_atSentBox, authSentBox;
         Outlook.Items pItems;
 
         /// <summary>
@@ -55,6 +56,9 @@ namespace SentMailMover
                 rx_atSentBox = ns.Folders["Ranorex Support"].Folders["Sent Items"];
                 log($"RxAT sentbox loaded: {rx_atSentBox.FolderPath}");
 
+                authSentBox = ns.Folders["Ranorex Authentication"].Folders["Sent Items"];
+                log($"RxAuth sentbox loaded: {authSentBox.FolderPath}");
+
                 pItems = pSentBox.Items.Restrict(mailFilter);
                 log($"Personal sentbox items: {pItems.Count} (with Filter Applied='{mailFilter}')");
             }
@@ -62,7 +66,7 @@ namespace SentMailMover
             {
                 log("Unable to create required variables");
                 log($"Exception Thrown: {ex}");
-                throw;
+                throw ex;
             }
 
             //Create NewItem Handler
@@ -75,7 +79,7 @@ namespace SentMailMover
             {
                 log("Unable to create ItemAdd event listner");
                 log($"Exception Thrown: {ex}");
-                throw;
+                throw ex;
             }
         }
 
@@ -111,6 +115,13 @@ namespace SentMailMover
                     {
                         if (!debug) mailItem.Move(rx_atSentBox);
                         log($"MOVED TO: {rx_atSentBox.FolderPath}");
+                    }
+
+                    if (sender == "Ranorex Authentication" ||
+                        onBehalfOfName == "Ranorex Authentication")
+                    {
+                        if (!debug) mailItem.Move(authSentBox);
+                        log($"MOVED TO: {authSentBox.FolderPath}");
                     }
                 }
                 catch (Exception ex)
